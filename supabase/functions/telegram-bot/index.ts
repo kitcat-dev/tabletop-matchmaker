@@ -13,8 +13,6 @@ Deno.serve(async (req) => {
 			return new Response("not allowed", { status: 405 });
 		}
 
-		console.log("Handle request", req);
-
 		return await handleUpdate(req);
 	} catch (err) {
 		console.error("Deno error: ", err);

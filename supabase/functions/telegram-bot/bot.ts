@@ -49,7 +49,6 @@ bot.on("edited_message", async (ctx, next) => {
 	await ctx.reply(
 		`Message has been updated and totalling to ${ctx.session.edits} edits`,
 	);
-
 	await next();
 });
 
