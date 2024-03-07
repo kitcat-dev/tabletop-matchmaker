@@ -4,15 +4,7 @@ import { bot } from "./bot.ts";
 
 console.log(`Function "telegram-bot" up and running!`);
 
-globalThis.addEventListener("unload", () => {
-	console.log("goodbye! (unload)");
-});
-
-const sigIntHandler = () => {
-	console.log("interrupted! (SIGINT)");
-	Deno.exit();
-};
-Deno.addSignalListener("SIGINT", sigIntHandler);
+const handleUpdate = webhookCallback(bot, "std/http");
 
 Deno.serve(async (req) => {
 	try {
@@ -22,8 +14,6 @@ Deno.serve(async (req) => {
 		}
 
 		console.log("Handle request", req);
-
-		const handleUpdate = webhookCallback(bot, "std/http");
 
 		return await handleUpdate(req);
 	} catch (err) {
