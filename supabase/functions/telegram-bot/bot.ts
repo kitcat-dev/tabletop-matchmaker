@@ -40,19 +40,19 @@ bot.use(
 );
 
 // Collect statistics
-bot.on("message", async (ctx, next) => {
-	ctx.session.messages++;
-	await ctx.reply(`Message received and totalling to ${ctx.session.messages}`);
-	await next();
-});
+// bot.on("message", async (ctx, next) => {
+// 	ctx.session.messages++;
+// 	await ctx.reply(`Message received and totalling to ${ctx.session.messages}`);
+// 	await next();
+// });
 
-bot.on("edited_message", async (ctx, next) => {
-	ctx.session.edits++;
-	await ctx.reply(
-		`Message has been updated and totalling to ${ctx.session.edits} edits`,
-	);
-	await next();
-});
+// bot.on("edited_message", async (ctx, next) => {
+// 	ctx.session.edits++;
+// 	await ctx.reply(
+// 		`Message has been updated and totalling to ${ctx.session.edits} edits`,
+// 	);
+// 	await next();
+// });
 
 bot
 	.filter((ctx) => ctx.chat?.type === "private")
@@ -79,6 +79,7 @@ bot.command("stats", async (ctx) => {
 	await ctx.reply(message, { parse_mode: "HTML" });
 });
 
+// Send info about user upon `/bgg $USERNAME`
 bot.command("bgg", async (ctx) => {
 	const { id, firstname } = await bggXmlApiClient.get<BggUserResponse>("user", {
 		name: ctx.match,
