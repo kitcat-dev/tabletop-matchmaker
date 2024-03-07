@@ -17,4 +17,5 @@ Deno.serve(async (req) => {
 	} catch (err) {
 		console.error("Deno error: ", err);
 	}
+	return new Response();
 });
