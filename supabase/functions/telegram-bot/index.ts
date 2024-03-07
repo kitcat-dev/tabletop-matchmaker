@@ -4,6 +4,16 @@ import { bot } from "./bot.ts";
 
 console.log(`Function "telegram-bot" up and running!`);
 
+globalThis.addEventListener("unload", () => {
+	console.log("goodbye! (unload)");
+});
+
+const sigIntHandler = () => {
+	console.log("interrupted! (SIGINT)");
+	Deno.exit();
+};
+Deno.addSignalListener("SIGINT", sigIntHandler);
+
 Deno.serve(async (req) => {
 	try {
 		const url = new URL(req.url);
