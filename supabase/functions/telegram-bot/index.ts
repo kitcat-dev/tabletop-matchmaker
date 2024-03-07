@@ -4,8 +4,6 @@ import { bot } from "./bot.ts";
 
 console.log(`Function "telegram-bot" up and running!`);
 
-const handleUpdate = webhookCallback(bot, "std/http");
-
 Deno.serve(async (req) => {
 	try {
 		const url = new URL(req.url);
@@ -13,8 +11,12 @@ Deno.serve(async (req) => {
 			return new Response("not allowed", { status: 405 });
 		}
 
+		console.log("Handle request", req);
+
+		const handleUpdate = webhookCallback(bot, "std/http");
+
 		return await handleUpdate(req);
 	} catch (err) {
-		console.error(err);
+		console.error("Deno error: ", err);
 	}
 });
