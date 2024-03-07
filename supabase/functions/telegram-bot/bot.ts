@@ -85,9 +85,19 @@ bot.command("bgg", async (ctx) => {
 		name: ctx.match,
 	});
 
+	if (!id) {
+		await ctx.reply("No user found.");
+		throw new Error("No user found.");
+	}
+
 	const { item: collection, totalitems } = await getBggCollection({
 		username: ctx.match,
 	});
+
+	if (collection.length === 0) {
+		await ctx.reply("Could not find a collection");
+		throw new Error("Could not find a collection");
+	}
 
 	await ctx.reply(`${firstname.value} ID: ${id}`);
 	await ctx.reply(
