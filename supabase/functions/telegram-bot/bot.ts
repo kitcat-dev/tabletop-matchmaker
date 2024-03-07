@@ -10,7 +10,7 @@ import {
 import { supabaseAdapter } from "https://deno.land/x/grammy_storages@v2.4.2/supabase/src/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.33.1";
 
-import { bggXmlApiClient, BggUserResponse } from "npm:bgg-xml-api-client";
+import { getBggUser, getBggCollection } from "npm:bgg-xml-api-client";
 
 const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -81,11 +81,20 @@ bot.command("stats", async (ctx) => {
 
 // Send info about user upon `/bgg $USERNAME`
 bot.command("bgg", async (ctx) => {
-	const { id, firstname } = await bggXmlApiClient.get<BggUserResponse>("user", {
+	const { id, firstname } = await getBggUser({
 		name: ctx.match,
 	});
 
-	await ctx.reply(`${firstname} ID: ${id}`);
+	const { item: collection, totalitems } = await getBggCollection({
+		username: ctx.match,
+	});
+
+	await ctx.reply(`${firstname.value} ID: ${id}`);
+	await ctx.reply(
+		`Found ${totalitems} game(s):${collection.map(
+			(item) => `\n- ${item.name}`,
+		)}`,
+	);
 });
 
 bot.catch((err) => {
