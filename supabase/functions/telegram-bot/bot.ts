@@ -10,6 +10,8 @@ import {
 import { supabaseAdapter } from "https://deno.land/x/grammy_storages@v2.4.2/supabase/src/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.33.1";
 
+import { bggXmlApiClient, BggUserResponse } from "npm:bgg-xml-api-client";
+
 const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
@@ -75,6 +77,14 @@ bot.command("stats", async (ctx) => {
 
 	// Send message in same chat using `reply` shortcut. Don't forget to `await`!
 	await ctx.reply(message, { parse_mode: "HTML" });
+});
+
+bot.command("bgg", async (ctx) => {
+	const { id, firstname } = await bggXmlApiClient.get<BggUserResponse>("user", {
+		name: ctx.match,
+	});
+
+	await ctx.reply(`${firstname} ID: ${id}`);
 });
 
 bot.catch((err) => {
