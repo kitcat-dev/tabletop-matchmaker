@@ -91,9 +91,9 @@ bot.command("bgg", async (ctx) => {
 
 	await ctx.reply(`${firstname.value} ID: ${id}`);
 	await ctx.reply(
-		`Found ${totalitems} game(s):${collection.map(
-			(item) => `\n- ${item.name}`,
-		)}`,
+		`Owns ${totalitems} game(s): ${collection
+			.filter((item) => item.status.own === 1)
+			.map((item) => `\n- ${item.name.text}. Plays: ${item.numplays}`)}`,
 	);
 });
 
