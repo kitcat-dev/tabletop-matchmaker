@@ -16,6 +16,10 @@ Deno.serve(async (req) => {
 		return await handleUpdate(req);
 	} catch (err) {
 		console.error("Deno error: ", err);
+
+		return new Response(JSON.stringify({ error: err.message }), {
+			headers: { "Content-Type": "application/json" },
+			status: 500,
+		});
 	}
-	return new Response();
 });

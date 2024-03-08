@@ -1,16 +1,13 @@
+import { getBggCollection, getBggUser } from "npm:bgg-xml-api-client";
 import { assert } from "https://deno.land/std@0.218.0/assert/mod.ts";
 import {
 	Bot,
-	type Context,
-	SessionFlavor,
-	session,
 	GrammyError,
 	HttpError,
 } from "https://deno.land/x/grammy@v1.21.1/mod.ts";
-import { supabaseAdapter } from "https://deno.land/x/grammy_storages@v2.4.2/supabase/src/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.33.1";
 
-import { getBggUser, getBggCollection } from "npm:bgg-xml-api-client";
+import type { Database } from "../../supabase.ts";
 
 const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -19,75 +16,26 @@ assert(botToken);
 assert(supabaseUrl);
 assert(supabaseKey);
 
-type SessionData = {
-	messages: number;
-	edits: number;
-};
+const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-const storage = supabaseAdapter({
-	supabase,
-	table: "sessions",
-});
-
-const bot = new Bot<Context & SessionFlavor<SessionData>>(botToken);
-
-bot.use(
-	session({
-		storage,
-		initial: () => ({ messages: 1, edits: 0 }),
-	}),
-);
-
-// Collect statistics
-// bot.on("message", async (ctx, next) => {
-// 	ctx.session.messages++;
-// 	await ctx.reply(`Message received and totalling to ${ctx.session.messages}`);
-// 	await next();
-// });
-
-// bot.on("edited_message", async (ctx, next) => {
-// 	ctx.session.edits++;
-// 	await ctx.reply(
-// 		`Message has been updated and totalling to ${ctx.session.edits} edits`,
-// 	);
-// 	await next();
-// });
+export const bot = new Bot(botToken);
 
 bot
 	.filter((ctx) => ctx.chat?.type === "private")
 	.command("start", (ctx) =>
 		ctx.reply(
-			"Hi there! I will count the messages in this chat so you can get your /stats!",
+			"Hi there! I will help you find a desired board game and organise an event." +
+				"Send message `/update_games $BGG_USERNAME` to share your list of games from BGG!",
 		),
 	);
 
-// Send statistics upon `/stats`
-bot.command("stats", async (ctx) => {
-	const stats = ctx.session;
-
-	// Format stats to string
-	const message = `You sent <b>${
-		stats.messages
-	} messages</b> since I'm here! You edited messages <b>${
-		stats.edits
-	} times</b>—that is <b>${
-		stats.edits / stats.messages
-	} edits</b> per message on average!`;
-
-	// Send message in same chat using `reply` shortcut. Don't forget to `await`!
-	await ctx.reply(message, { parse_mode: "HTML" });
-});
-
-// Send info about user upon `/bgg $USERNAME`
-bot.command("bgg", async (ctx) => {
-	const { id, firstname } = await getBggUser({
-		name: ctx.match,
-	});
+bot.command("show_games", async (ctx) => {
+	const { id } = await getBggUser({ name: ctx.match });
 
 	if (!id) {
-		await ctx.reply("No user found.");
-		throw new Error("No user found.");
+		const message = "No user found";
+		await ctx.reply(message);
+		throw new Error(message);
 	}
 
 	const { item: collection, totalitems } = await getBggCollection({
@@ -95,15 +43,17 @@ bot.command("bgg", async (ctx) => {
 	});
 
 	if (collection.length === 0) {
-		await ctx.reply("Could not find a collection");
-		throw new Error("Could not find a collection");
+		const message = `Could not find a collection for user ${ctx.match}`;
+		await ctx.reply(message);
+		throw new Error(message);
 	}
 
-	await ctx.reply(`${firstname.value} ID: ${id}`);
+	// supabase.from("");
+
 	await ctx.reply(
-		`Owns ${totalitems} game(s):\n${collection
+		`User ${ctx.match} owns ${totalitems} game(s):\n${collection
 			.filter((item) => item.status.own === 1)
-			.map((item) => `- ${item.name.text}. Plays: ${item.numplays}`)
+			.map((item) => `- ${item.name.text}. Played ${item.numplays} times`)
 			.join("\n")}`,
 	);
 });
@@ -120,5 +70,3 @@ bot.catch((err) => {
 		console.error("Unknown error:", e);
 	}
 });
-
-export { bot };
