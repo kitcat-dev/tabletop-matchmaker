@@ -23,7 +23,7 @@ if (!id) {
 	throw new Error(message);
 }
 
-const { item: collection, totalitems } = await getBggCollection({
+const { item: collection } = await getBggCollection({
 	username: bggUsername,
 });
 
@@ -44,14 +44,6 @@ const { data: userData } = await supabase
 		},
 	)
 	.select();
-
-// console.log(
-// 	`User ${bggUsername} owns ${totalitems} game(s):\n${collection
-// 		.filter((item) => item.status.own === 1)
-// 		.map((item) => `- ${item.name.text}. Played ${item.numplays} times`)
-// 		.slice(0, 15)
-// 		.join("\n")}`,
-// );
 
 const { data: gamesData } = await supabase
 	.from("games")

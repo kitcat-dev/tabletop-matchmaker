@@ -8,6 +8,7 @@ import {
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.33.1";
 
 import type { Database } from "../../supabase.ts";
+import { assertWithReply } from "./lib/assert.ts";
 
 const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -25,15 +26,101 @@ bot
 	.command("start", (ctx) =>
 		ctx.reply(
 			"Hi there! I will help you find a desired board game and organise an event." +
-				"Send message `/update_games $BGG_USERNAME` to share your list of games from BGG!",
+				"Press /help to see commands.",
 		),
 	);
+
+await bot.api.setMyCommands([
+	{ command: "start", description: "Start the bot" },
+	{ command: "help", description: "Show help text" },
+	{
+		command: "show_all_games",
+		description: "List games of all users in the chat",
+	},
+	{
+		command: "update_my_games",
+		description:
+			"Add your games to the list. It's required to provide $BGG_USERNAME after the command.",
+	},
+]);
+
+bot.command("update_my_games", async (ctx) => {
+	const { id } = await getBggUser({ name: ctx.match });
+	await assertWithReply(id, "No user found", ctx);
+
+	const telegramUsername = ctx.message?.from.username;
+	await assertWithReply(
+		telegramUsername,
+		`Could not receive Telegram username: ${ctx.message?.from}`,
+		ctx,
+	);
+
+	const bggUsername = ctx.match.trim();
+	await assertWithReply(
+		bggUsername,
+		"Please provide your username on BoardGameGeek",
+		ctx,
+	);
+
+	const { item: collection, totalitems } = await getBggCollection({
+		username: bggUsername,
+	});
+	await assertWithReply(
+		collection.length,
+		`Could not find a BGG collection for user ${bggUsername}`,
+		ctx,
+	);
+
+	const { data: users, error: userError } = await supabase
+		.from("users")
+		.upsert(
+			{
+				bgg_username: bggUsername,
+				telegram_username: telegramUsername,
+			},
+			{
+				onConflict: "bgg_username",
+			},
+		)
+		.select();
+
+	const { data: games, error: gamesError } = await supabase
+		.from("games")
+		.upsert(
+			collection
+				.filter((item) => item.status.own === 1)
+				.map((item) => ({
+					id: item.objectid.toString(),
+					name: item.name.text,
+				})),
+		)
+		.select();
+
+	assert(users && games, "Could not insert user or game data");
+	const currentUser = users[0];
+
+	await supabase
+		.from("users_to_games")
+		.upsert(
+			games.map((game) => ({ game_id: game.id, user_id: currentUser.id })),
+		);
+
+	await assertWithReply(
+		userError === null && gamesError === null,
+		"Could not link username with games",
+		ctx,
+	);
+
+	ctx.reply(
+		`${bggUsername} has ${totalitems} game(s). These include ${games.length} that were not previously in our knowledge base.`,
+	);
+});
 
 bot.command("show_games", async (ctx) => {
 	const { id } = await getBggUser({ name: ctx.match });
 
 	if (!id) {
-		const message = "No user found";
+		const message = "No BGG user found";
 		await ctx.reply(message);
 		throw new Error(message);
 	}
@@ -43,7 +130,7 @@ bot.command("show_games", async (ctx) => {
 	});
 
 	if (collection.length === 0) {
-		const message = `Could not find a collection for user ${ctx.match}`;
+		const message = `Could not find a BGG collection for user ${ctx.match}`;
 		await ctx.reply(message);
 		throw new Error(message);
 	}
