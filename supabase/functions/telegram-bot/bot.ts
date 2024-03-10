@@ -25,7 +25,7 @@ bot
 	.filter((ctx) => ctx.chat?.type === "private")
 	.command("start", (ctx) =>
 		ctx.reply(
-			"Hi there! I will help you find a desired board game and organise an event." +
+			"Hi there! I will help you find a desired board game and organise an event.\n" +
 				"Press /help to see commands.",
 		),
 	);
@@ -62,7 +62,7 @@ bot.command("update_my_games", async (ctx) => {
 		ctx,
 	);
 
-	const { item: collection, totalitems } = await getBggCollection({
+	const { item: collection } = await getBggCollection({
 		username: bggUsername,
 	});
 	await assertWithReply(
@@ -84,15 +84,23 @@ bot.command("update_my_games", async (ctx) => {
 		)
 		.select();
 
+	const ownGames = collection.filter((item) => item.status.own === 1);
+	const { count: existingGamesCount } = await supabase
+		.from("games")
+		.select("*", { count: "exact", head: true })
+		.in(
+			"id",
+			ownGames.map((item) => item.objectid.toString()),
+		);
+	const diff = ownGames.length - (existingGamesCount ?? 0);
+
 	const { data: games, error: gamesError } = await supabase
 		.from("games")
 		.upsert(
-			collection
-				.filter((item) => item.status.own === 1)
-				.map((item) => ({
-					id: item.objectid.toString(),
-					name: item.name.text,
-				})),
+			ownGames.map((item) => ({
+				id: item.objectid.toString(),
+				name: item.name.text,
+			})),
 		)
 		.select();
 
@@ -112,7 +120,7 @@ bot.command("update_my_games", async (ctx) => {
 	);
 
 	ctx.reply(
-		`${bggUsername} has ${totalitems} game(s). These include ${games.length} that were not previously in our knowledge base.`,
+		`${bggUsername} has ${ownGames.length} game(s). These include ${diff} that were not previously in our knowledge base.`,
 	);
 });
 
