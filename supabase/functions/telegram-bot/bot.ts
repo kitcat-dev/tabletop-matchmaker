@@ -80,7 +80,7 @@ bot.command("update_my_games", async (ctx) => {
 				telegram_username: telegramUsername,
 			},
 			{
-				onConflict: "bgg_username",
+				onConflict: "telegram_username",
 			},
 		)
 		.select();
