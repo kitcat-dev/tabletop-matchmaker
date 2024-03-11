@@ -9,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.33.1";
 
 import type { Database } from "../../supabase.ts";
 import { assertWithReply } from "./lib/assert.ts";
+import { useColors } from "https://cdn.skypack.dev/debug@4.3.4";
 
 const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -118,40 +119,46 @@ bot.command("update_my_games", async (ctx) => {
 	const newGamesMessage = `New (${newGames.length}):\n${newGames
 		.map((item) => `- ${item.name.text}`)
 		.join("\n")}`;
-	ctx.reply(
+	await ctx.reply(
 		`${bggUsername} has ${ownGames.length} game(s). ${
 			newGames.length ? newGamesMessage : ""
 		}`,
 	);
 });
 
-bot.command("show_games", async (ctx) => {
-	const { id } = await getBggUser({ name: ctx.match });
-
-	if (!id) {
-		const message = "No BGG user found";
-		await ctx.reply(message);
-		throw new Error(message);
-	}
-
-	const { item: collection, totalitems } = await getBggCollection({
-		username: ctx.match,
-	});
-
-	if (collection.length === 0) {
-		const message = `Could not find a BGG collection for user ${ctx.match}`;
-		await ctx.reply(message);
-		throw new Error(message);
-	}
-
-	// supabase.from("");
-
-	await ctx.reply(
-		`User ${ctx.match} owns ${totalitems} game(s):\n${collection
-			.filter((item) => item.status.own === 1)
-			.map((item) => `- ${item.name.text}. Played ${item.numplays} times`)
-			.join("\n")}`,
+bot.command("show_all_games", async (ctx) => {
+	const { data: gamesToUsers } = await supabase.from("games").select(`
+        id,
+        name,
+        users ( id, telegram_username, bgg_username )
+    `);
+	await assertWithReply(
+		gamesToUsers && gamesToUsers.length > 0,
+		"No games found",
+		ctx,
 	);
+	assert(Array.isArray(gamesToUsers));
+
+	const message = gamesToUsers
+		.map(
+			(item) =>
+				`- ${item.name} (${item.users.length}: ${item.users
+					.map((user) => user.telegram_username)
+					.join(", ")})`,
+		)
+		.join("\n");
+
+	function chunkString(str: string, length: number) {
+		return str.match(new RegExp(`.{1,${length}}`, "gs")); // s = don't match new line
+	}
+
+	const MAX_TELEGRAM_MESSAGE_LENGTH = 4096;
+	const chunks = chunkString(message, MAX_TELEGRAM_MESSAGE_LENGTH);
+	assert(chunks !== null, "Could not parse to chunks");
+
+	for (const chunk of chunks) {
+		await ctx.reply(chunk);
+	}
 });
 
 bot.catch((err) => {
