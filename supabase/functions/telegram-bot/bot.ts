@@ -9,7 +9,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.33.1";
 
 import type { Database } from "../../supabase.ts";
 import { assertWithReply } from "./lib/assert.ts";
-import { useColors } from "https://cdn.skypack.dev/debug@4.3.4";
 
 const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
