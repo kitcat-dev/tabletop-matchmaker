@@ -83,16 +83,14 @@ bot.command("update_my_games", async (ctx) => {
 			},
 		)
 		.select();
+	assert(users, "Could not insert user data to database.");
 
 	const ownGames = collection.filter((item) => item.status.own === 1);
-	const { count: existingGamesCount } = await supabase
-		.from("games")
-		.select("*", { count: "exact", head: true })
-		.in(
-			"id",
-			ownGames.map((item) => item.objectid.toString()),
-		);
-	const diff = ownGames.length - (existingGamesCount ?? 0);
+	const { data: prevGamesState } = await supabase.from("games").select("id");
+	const prevGamesIds = new Set(prevGamesState?.map((item) => item.id));
+	const newGames = ownGames.filter(
+		(game) => !prevGamesIds.has(String(game.objectid)),
+	);
 
 	const { data: games, error: gamesError } = await supabase
 		.from("games")
@@ -103,24 +101,27 @@ bot.command("update_my_games", async (ctx) => {
 			})),
 		)
 		.select();
+	assert(games, "Could not insert game data to database.");
 
-	assert(users && games, "Could not insert user or game data");
 	const currentUser = users[0];
-
-	await supabase
+	const { error: usersToGamesError } = await supabase
 		.from("users_to_games")
 		.upsert(
 			games.map((game) => ({ game_id: game.id, user_id: currentUser.id })),
 		);
-
 	await assertWithReply(
-		userError === null && gamesError === null,
+		userError === null && gamesError === null && usersToGamesError === null,
 		"Could not link username with games",
 		ctx,
 	);
 
+	const newGamesMessage = `New (${newGames.length}):\n${newGames
+		.map((item) => `- ${item.name}`)
+		.join("\n")}`;
 	ctx.reply(
-		`${bggUsername} has ${ownGames.length} game(s). These include ${diff} that were not previously in our knowledge base.`,
+		`${bggUsername} has ${ownGames.length} game(s). ${
+			newGames.length ? newGamesMessage : ""
+		}`,
 	);
 });
 
