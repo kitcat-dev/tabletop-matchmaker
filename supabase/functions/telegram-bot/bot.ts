@@ -116,7 +116,7 @@ bot.command("update_my_games", async (ctx) => {
 	);
 
 	const newGamesMessage = `New (${newGames.length}):\n${newGames
-		.map((item) => `- ${item.name}`)
+		.map((item) => `- ${item.name.text}`)
 		.join("\n")}`;
 	ctx.reply(
 		`${bggUsername} has ${ownGames.length} game(s). ${
