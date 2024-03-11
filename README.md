@@ -2,7 +2,7 @@
 
 This telegram bot is powered by Supabase Edge Functions.
 
-## How to start
+## Contributing
 
 Prerequisites:
 
