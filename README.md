@@ -2,6 +2,10 @@
 
 This telegram bot is powered by Supabase Edge Functions.
 
+Commands:
+1. `/update_my_games $BGG_USERNAME`
+2. `/show_all_games`
+
 ## Contributing
 
 Prerequisites:
